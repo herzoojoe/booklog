@@ -1,0 +1,679 @@
+<!--
+  ============================================================
+  BookLog — 독서 기록 웹앱
+  단일 HTML 파일 / 순수 HTML + CSS + JS / localStorage
+  ============================================================
+
+  [섹션 목록]
+  ┌─────────────────────────────────────────────────┐
+  │  <header>        로고 + 앱 타이틀                │
+  │  <section#form>  책 추가 입력 폼                 │
+  │  <section#list>  독서 기록 카드 목록             │
+  │  <div#empty>     기록이 없을 때 표시되는 상태    │
+  └─────────────────────────────────────────────────┘
+
+  [데이터 스키마 — localStorage key: "booklog_books"]
+  book {
+    id        : string   — crypto.randomUUID() 기반 고유 ID
+    title     : string   — 책 제목 (필수)
+    author    : string   — 저자 (필수)
+    status    : string   — "reading" | "done" | "want"
+    rating    : number   — 1~5 별점 (status === "done"일 때만)
+    memo      : string   — 간단한 감상 메모 (선택)
+    createdAt : string   — ISO 8601 날짜 문자열 (저장 시각)
+  }
+
+  [주요 함수 목록]
+  - saveBook(formData)      : 새 book 객체 생성 → books 배열에 추가 → localStorage 저장 → render()
+  - deleteBook(id)          : id로 배열에서 제거 → localStorage 갱신 → render()
+  - render()                : books 배열을 읽어 카드 목록 DOM 전체 재생성, empty-state 표시 여부 결정
+  - sortBooks(criteria)     : criteria("createdAt" | "rating" | "title")로 books 배열 정렬 → render()
+  ============================================================
+-->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BookLog</title>
+  <style>
+    /* ── Reset & Variables ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #f7f4ef;
+      --surface:   #ffffff;
+      --border:    #e2ddd6;
+      --primary:   #5c4a32;
+      --accent:    #c07c3e;
+      --text:      #2d2416;
+      --muted:     #9e9185;
+      --star:      #e0a020;
+      --reading:   #2d7dd2;
+      --done:      #3aaa5e;
+      --want:      #9b6bb5;
+      --danger:    #d9534f;
+      --radius:    12px;
+      --shadow:    0 2px 8px rgba(0,0,0,0.07);
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 0 16px 48px;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 20px 16px;
+      margin-bottom: 28px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    header .inner {
+      max-width: 760px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    header .logo {
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header p {
+      font-size: 12px;
+      opacity: 0.72;
+      margin-top: 2px;
+    }
+
+    /* ── Form Card ── */
+    #form-section {
+      background: var(--surface);
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 28px;
+    }
+
+    #form-section h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 12px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      font-family: inherit;
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+      background: #fff;
+    }
+
+    textarea { resize: vertical; min-height: 72px; }
+
+    /* Star rating input */
+    .star-input {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .star-input input[type="radio"] { display: none; }
+
+    .star-input label {
+      font-size: 24px;
+      color: var(--border);
+      cursor: pointer;
+      transition: color 0.1s, transform 0.1s;
+      text-transform: none;
+      letter-spacing: 0;
+      line-height: 1;
+      padding: 2px;
+    }
+
+    .star-input label:hover,
+    .star-input label:hover ~ label,
+    .star-input input[type="radio"]:checked ~ label { color: var(--border); }
+
+    /* Reverse sibling trick: stars fill from left */
+    .star-input { direction: rtl; }
+    .star-input label { direction: ltr; }
+
+    .star-input label:hover,
+    .star-input input[type="radio"]:checked ~ label { color: var(--border); }
+
+    .star-input input[type="radio"]:checked + label,
+    .star-input input[type="radio"]:checked + label ~ label,
+    .star-input label:hover,
+    .star-input label:hover ~ label { color: var(--star); }
+
+    #rating-group { display: none; }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      font-size: 14px;
+      padding: 9px 20px;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { opacity: 0.88; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+    }
+
+    .btn-ghost:hover { border-color: var(--muted); }
+
+    /* ── List Controls ── */
+    .list-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .list-controls h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .sort-select {
+      padding: 6px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      cursor: pointer;
+      outline: none;
+    }
+
+    /* ── Book Cards ── */
+    #book-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .book-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 4px 12px;
+      align-items: start;
+      animation: fadeIn 0.2s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card-main { min-width: 0; }
+
+    .card-top {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+
+    .book-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-reading { background: #ddeeff; color: var(--reading); }
+    .badge-done    { background: #d9f5e5; color: var(--done); }
+    .badge-want    { background: #ede0f5; color: var(--want); }
+
+    .book-author {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .book-stars { color: var(--star); font-size: 14px; letter-spacing: 1px; }
+
+    .book-memo {
+      font-size: 13px;
+      color: #5a4e40;
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: var(--bg);
+      border-radius: 6px;
+      border-left: 3px solid var(--accent);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .book-date {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 8px;
+    }
+
+    .card-actions { display: flex; gap: 6px; padding-top: 2px; }
+
+    .btn-delete {
+      background: transparent;
+      color: var(--muted);
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 13px;
+    }
+
+    .btn-delete:hover { color: var(--danger); border-color: var(--danger); }
+
+    /* ── Empty State ── */
+    #empty-state {
+      display: none;
+      text-align: center;
+      padding: 56px 20px;
+      color: var(--muted);
+    }
+
+    #empty-state .empty-icon { font-size: 52px; margin-bottom: 14px; }
+    #empty-state p { font-size: 15px; font-weight: 500; margin-bottom: 4px; }
+    #empty-state span { font-size: 13px; }
+
+    /* ── Validation ── */
+    .input-error { border-color: var(--danger) !important; }
+    .error-msg { font-size: 11px; color: var(--danger); margin-top: 2px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 520px) {
+      .form-row { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: 1; }
+      #form-section { padding: 18px 16px; }
+      .book-card { padding: 14px 16px; }
+      .book-title { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="inner">
+      <div class="logo">📚</div>
+      <div>
+        <h1>BookLog</h1>
+        <p>나만의 독서 기록장</p>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- 책 추가 폼 -->
+    <section id="form-section">
+      <h2>✏️ 책 추가</h2>
+      <form id="book-form" novalidate>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="title">책 제목 *</label>
+            <input type="text" id="title" placeholder="책 제목을 입력하세요" />
+            <span class="error-msg" id="title-error"></span>
+          </div>
+          <div class="form-group">
+            <label for="author">저자 *</label>
+            <input type="text" id="author" placeholder="저자명을 입력하세요" />
+            <span class="error-msg" id="author-error"></span>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="status">독서 상태 *</label>
+            <select id="status">
+              <option value="want">읽고 싶어요</option>
+              <option value="reading">읽는 중</option>
+              <option value="done">다 읽었어요</option>
+            </select>
+          </div>
+          <div class="form-group" id="rating-group">
+            <label>별점</label>
+            <div class="star-input" id="star-input">
+              <input type="radio" name="rating" id="r5" value="5" /><label for="r5">★</label>
+              <input type="radio" name="rating" id="r4" value="4" /><label for="r4">★</label>
+              <input type="radio" name="rating" id="r3" value="3" /><label for="r3">★</label>
+              <input type="radio" name="rating" id="r2" value="2" /><label for="r2">★</label>
+              <input type="radio" name="rating" id="r1" value="1" /><label for="r1">★</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="memo">감상 메모</label>
+          <textarea id="memo" placeholder="책에 대한 생각을 자유롭게 적어보세요 (선택)"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn-ghost" id="reset-btn">초기화</button>
+          <button type="submit" class="btn-primary">📖 기록 저장</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- 목록 컨트롤 -->
+    <div class="list-controls">
+      <h2>📋 독서 목록 <span id="book-count" style="color:var(--muted);font-weight:400;font-size:13px;"></span></h2>
+      <select class="sort-select" id="sort-select">
+        <option value="createdAt">최근 추가순</option>
+        <option value="title">제목순</option>
+        <option value="rating">별점 높은순</option>
+      </select>
+    </div>
+
+    <!-- 책 카드 목록 -->
+    <div id="book-list"></div>
+
+    <!-- 빈 상태 -->
+    <div id="empty-state">
+      <div class="empty-icon">📭</div>
+      <p>아직 기록된 책이 없어요</p>
+      <span>위 폼에서 첫 번째 책을 추가해 보세요!</span>
+    </div>
+
+  </div>
+
+  <script>
+    /* ── Storage ── */
+    const STORAGE_KEY = 'booklog_books';
+
+    function loadBooks() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      } catch {
+        return [];
+      }
+    }
+
+    function persistBooks(books) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(books));
+    }
+
+    /* ── State ── */
+    let books = loadBooks();
+    let currentSort = 'createdAt';
+
+    /* ── saveBook ── */
+    function saveBook(formData) {
+      const book = {
+        id:        crypto.randomUUID(),
+        title:     formData.title.trim(),
+        author:    formData.author.trim(),
+        status:    formData.status,
+        rating:    formData.status === 'done' ? (formData.rating || 0) : 0,
+        memo:      formData.memo.trim(),
+        createdAt: new Date().toISOString(),
+      };
+      books.unshift(book);
+      persistBooks(books);
+      render();
+    }
+
+    /* ── deleteBook ── */
+    function deleteBook(id) {
+      books = books.filter(b => b.id !== id);
+      persistBooks(books);
+      render();
+    }
+
+    /* ── sortBooks ── */
+    function sortBooks(criteria) {
+      const sorted = [...books];
+      if (criteria === 'title') {
+        sorted.sort((a, b) => a.title.localeCompare(b.title, 'ko'));
+      } else if (criteria === 'rating') {
+        sorted.sort((a, b) => b.rating - a.rating);
+      } else {
+        sorted.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      }
+      return sorted;
+    }
+
+    /* ── render ── */
+    function render() {
+      const list = document.getElementById('book-list');
+      const empty = document.getElementById('empty-state');
+      const countEl = document.getElementById('book-count');
+
+      if (books.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = 'block';
+        countEl.textContent = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+      countEl.textContent = `(${books.length}권)`;
+
+      const sorted = sortBooks(currentSort);
+
+      list.innerHTML = sorted.map(book => {
+        const statusMap = { reading: '읽는 중', done: '다 읽었어요', want: '읽고 싶어요' };
+        const stars = book.status === 'done' && book.rating
+          ? '★'.repeat(book.rating) + '☆'.repeat(5 - book.rating)
+          : '';
+        const memoHtml = book.memo
+          ? `<div class="book-memo">${escapeHtml(book.memo)}</div>`
+          : '';
+        const starsHtml = stars
+          ? `<div class="book-stars">${stars}</div>`
+          : '';
+        const date = new Date(book.createdAt).toLocaleDateString('ko-KR', {
+          year: 'numeric', month: 'long', day: 'numeric'
+        });
+
+        return `
+          <div class="book-card" data-id="${book.id}">
+            <div class="card-main">
+              <div class="card-top">
+                <span class="book-title">${escapeHtml(book.title)}</span>
+                <span class="badge badge-${book.status}">${statusMap[book.status]}</span>
+              </div>
+              <div class="book-author">✍️ ${escapeHtml(book.author)}</div>
+              ${starsHtml}
+              ${memoHtml}
+              <div class="book-date">📅 ${date}</div>
+            </div>
+            <div class="card-actions">
+              <button class="btn-delete" onclick="confirmDelete('${book.id}')">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    /* ── Helpers ── */
+    function escapeHtml(str) {
+      return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function confirmDelete(id) {
+      const book = books.find(b => b.id === id);
+      if (!book) return;
+      if (confirm(`"${book.title}" 기록을 삭제할까요?`)) {
+        deleteBook(id);
+      }
+    }
+
+    /* ── Form Logic ── */
+    const form       = document.getElementById('book-form');
+    const statusSel  = document.getElementById('status');
+    const ratingGroup = document.getElementById('rating-group');
+    const sortSelect = document.getElementById('sort-select');
+
+    statusSel.addEventListener('change', () => {
+      ratingGroup.style.display = statusSel.value === 'done' ? 'flex' : 'none';
+    });
+
+    sortSelect.addEventListener('change', () => {
+      currentSort = sortSelect.value;
+      render();
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', resetForm);
+
+    function resetForm() {
+      form.reset();
+      ratingGroup.style.display = 'none';
+      clearErrors();
+    }
+
+    function clearErrors() {
+      document.getElementById('title-error').textContent = '';
+      document.getElementById('author-error').textContent = '';
+      document.getElementById('title').classList.remove('input-error');
+      document.getElementById('author').classList.remove('input-error');
+    }
+
+    function validate(title, author) {
+      let valid = true;
+      clearErrors();
+      if (!title.trim()) {
+        document.getElementById('title-error').textContent = '책 제목을 입력해 주세요.';
+        document.getElementById('title').classList.add('input-error');
+        valid = false;
+      }
+      if (!author.trim()) {
+        document.getElementById('author-error').textContent = '저자명을 입력해 주세요.';
+        document.getElementById('author').classList.add('input-error');
+        valid = false;
+      }
+      return valid;
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title  = document.getElementById('title').value;
+      const author = document.getElementById('author').value;
+      if (!validate(title, author)) return;
+
+      const ratingInput = form.querySelector('input[name="rating"]:checked');
+      saveBook({
+        title,
+        author,
+        status: statusSel.value,
+        rating: ratingInput ? parseInt(ratingInput.value, 10) : 0,
+        memo:   document.getElementById('memo').value,
+      });
+      resetForm();
+    });
+
+    /* ── Init ── */
+    render();
+  </script>
+</body>
+</html>
