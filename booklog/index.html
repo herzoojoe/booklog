@@ -321,7 +321,24 @@
       border: 1px solid var(--border);
       border-radius: 20px;
       font-size: 12px;
+      font-family: inherit;
+      line-height: 1.6;
       color: var(--text-sub);
+      cursor: pointer;
+      transition: border-color var(--transition), color var(--transition);
+    }
+    .card-genre:hover { border-color: var(--accent); color: var(--accent); }
+    .card-genre.empty { background: transparent; border-style: dashed; }
+    .card-genre-select {
+      margin-left: 8px;
+      padding: 2px 6px;
+      background: #fff;
+      border: 1.5px solid var(--accent);
+      border-radius: 20px;
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text);
+      outline: none;
     }
     .card-stars  { font-size: 16px; letter-spacing: 2px; color: var(--star-on); }
     .card-stars .off { color: var(--star-off); }
@@ -641,6 +658,10 @@
       return id;
     }
 
+    function updateBookGenre(id, genre) {
+      saveBooks(loadBooks().map(b => b.id === id ? { ...b, genre } : b));
+    }
+
     function deleteBook(id) {
       saveBooks(loadBooks().filter(b => b.id !== id));
     }
@@ -697,7 +718,7 @@
               <h3 class="card-title">${escapeHtml(book.title)}</h3>
               <button class="btn-delete" data-id="${book.id}" aria-label="삭제">🗑</button>
             </div>
-            <p class="card-author">✍️ ${escapeHtml(book.author)}${book.genre ? `<span class="card-genre">${escapeHtml(book.genre)}</span>` : ''}</p>
+            <p class="card-author">✍️ ${escapeHtml(book.author)}<button class="card-genre${book.genre ? '' : ' empty'}" data-id="${book.id}" title="장르 바꾸기">${book.genre ? escapeHtml(book.genre) : '＋ 장르'}</button></p>
             ${starsHtml}
             ${reviewHtml}
             <div class="card-footer">📅 ${dateLabel}</div>
@@ -804,6 +825,20 @@
 
     /* 카드 그리드 클릭 위임 — 삭제 / 인라인 확인 처리 */
     document.getElementById('card-grid').addEventListener('click', e => {
+      /* 장르 태그 → 그 자리에 장르 선택 상자 표시 */
+      const genreBtn = e.target.closest('.card-genre');
+      if (genreBtn) {
+        const current = loadBooks().find(b => b.id === Number(genreBtn.dataset.id))?.genre || '';
+        const list = GENRES.includes(current) || !current ? GENRES : [...GENRES, current];
+        genreBtn.outerHTML = `
+          <select class="card-genre-select" data-id="${genreBtn.dataset.id}" aria-label="장르 선택">
+            <option value="">선택 안 함</option>
+            ${list.map(g => `<option value="${escapeHtml(g)}"${g === current ? ' selected' : ''}>${escapeHtml(g)}</option>`).join('')}
+          </select>`;
+        document.querySelector(`.card-genre-select[data-id="${genreBtn.dataset.id}"]`).focus();
+        return;
+      }
+
       /* 삭제 아이콘 → 인라인 확인 UI 표시 */
       const deleteBtn = e.target.closest('.btn-delete');
       if (deleteBtn) {
@@ -919,6 +954,21 @@
     /* "통계" 버튼: 통계 화면 ↔ 목록 화면 전환 */
     btnStats.addEventListener('click', () => {
       showStats(!container.classList.contains('stats-mode'));
+    });
+
+    /* 카드 장르 선택: 고르면 저장, 다른 곳을 누르거나 Esc면 취소 */
+    const cardGrid = document.getElementById('card-grid');
+    cardGrid.addEventListener('change', e => {
+      const sel = e.target.closest('.card-genre-select');
+      if (!sel) return;
+      updateBookGenre(Number(sel.dataset.id), sel.value);
+      render();
+    });
+    cardGrid.addEventListener('focusout', e => {
+      if (e.target.closest('.card-genre-select')) render();
+    });
+    cardGrid.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && e.target.closest('.card-genre-select')) render();
     });
 
     render();
