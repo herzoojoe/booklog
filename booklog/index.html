@@ -77,6 +77,27 @@
     .btn-add:active { transform: scale(0.96); }
     .btn-add .icon  { font-size: 16px; font-style: normal; }
 
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+
+    .btn-stats {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      background: transparent;
+      color: #fff;
+      border: 1.5px solid rgba(255,255,255,0.45);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background var(--transition), border-color var(--transition), transform 0.1s;
+    }
+    .btn-stats:hover  { background: rgba(255,255,255,0.12); border-color: #fff; }
+    .btn-stats:active { transform: scale(0.96); }
+    .btn-stats.active { background: #fff; border-color: #fff; color: var(--primary); }
+
     /* Container */
     .container {
       max-width: 960px;
@@ -125,6 +146,7 @@
 
     .form-group input[type="text"],
     .form-group input[type="date"],
+    .form-group select,
     .form-group textarea {
       width: 100%;
       padding: 10px 13px;
@@ -138,6 +160,7 @@
       transition: border-color var(--transition), background var(--transition);
     }
     .form-group input:focus,
+    .form-group select:focus,
     .form-group textarea:focus { border-color: var(--accent); background: #fff; }
     .form-group textarea { resize: vertical; min-height: 80px; }
 
@@ -290,6 +313,16 @@
     .btn-delete:hover { border-color: var(--danger); color: var(--danger); background: #fdf0ef; }
 
     .card-author { font-size: 13px; color: var(--text-sub); }
+    .card-genre {
+      display: inline-block;
+      margin-left: 8px;
+      padding: 1px 9px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 12px;
+      color: var(--text-sub);
+    }
     .card-stars  { font-size: 16px; letter-spacing: 2px; color: var(--star-on); }
     .card-stars .off { color: var(--star-off); }
 
@@ -351,12 +384,110 @@
     #empty-state .empty-title { font-size: 17px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
     #empty-state .empty-desc  { font-size: 14px; }
 
+    /* 통계 화면 — 통계 모드에서는 폼·목록·빈 화면을 숨기고 통계만 표시 */
+    #stats-section { display: none; }
+    .container.stats-mode #stats-section { display: block; animation: fadeUp 0.22s ease; }
+    .container.stats-mode #form-section,
+    .container.stats-mode #list-section,
+    .container.stats-mode #empty-state { display: none; }
+
+    .stats-header { margin-bottom: 18px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 768px) {
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+    }
+    .stat-card.full { grid-column: 1 / -1; }
+    .stat-card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-sub);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .stat-note { font-size: 12px; color: var(--text-sub); margin-top: 10px; }
+
+    .stat-hero { display: flex; align-items: baseline; gap: 6px; color: var(--primary); }
+    .stat-hero .num  { font-size: 48px; font-weight: 700; line-height: 1.1; letter-spacing: -1px; }
+    .stat-hero .unit { font-size: 18px; font-weight: 600; }
+
+    /* 장르 Top 3 */
+    .genre-list { list-style: none; display: flex; flex-direction: column; gap: 12px; }
+    .genre-row  { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 4px 10px; }
+    .genre-rank { font-size: 14px; font-weight: 700; color: var(--accent); }
+    .genre-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .genre-count { font-size: 13px; color: var(--text-sub); }
+    .genre-track { grid-column: 2 / -1; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; }
+    .genre-fill  { height: 100%; background: var(--accent); border-radius: 4px; }
+    .stat-empty  { font-size: 14px; color: var(--text-sub); padding: 8px 0; }
+
+    /* 월별 막대그래프 */
+    .month-chart {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 6px;
+      height: 180px;
+      align-items: end;
+      border-bottom: 1.5px solid var(--border);
+      padding-top: 22px;
+    }
+    .month-col {
+      position: relative;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      outline: none;
+    }
+    .month-bar {
+      width: 100%;
+      max-width: 36px;
+      background: var(--accent);
+      border-radius: 4px 4px 0 0;
+      transition: background var(--transition);
+    }
+    .month-col:hover .month-bar,
+    .month-col:focus .month-bar { background: var(--primary); }
+    .month-value { font-size: 12px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .month-col[data-tip]:hover::after,
+    .month-col[data-tip]:focus::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 4px 10px;
+      background: var(--primary);
+      color: #fff;
+      font-size: 12px;
+      border-radius: 6px;
+      box-shadow: var(--shadow-md);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .month-labels { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin-top: 6px; }
+    .month-labels span { text-align: center; font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+    .month-labels span.current { color: var(--accent); font-weight: 700; }
+
     /* Responsive — 520px 이하: 폼 1열 */
     @media (max-width: 520px) {
       .form-card { padding: 20px 16px; }
       .form-grid { grid-template-columns: 1fr; }
       .form-group.full { grid-column: 1; }
       .list-header { flex-direction: column; align-items: flex-start; }
+      .month-chart, .month-labels { gap: 3px; }
+      .month-labels span { font-size: 10px; letter-spacing: -0.5px; }
+      .btn-stats, .btn-add { padding: 7px 11px; }
     }
   </style>
 </head>
@@ -368,9 +499,14 @@
         <span class="logo">📚</span>
         <h1>BookLog</h1>
       </div>
-      <button class="btn-add" id="btn-add">
-        <i class="icon">＋</i> 책 추가
-      </button>
+      <div class="header-actions">
+        <button class="btn-stats" id="btn-stats" aria-pressed="false">
+          📊 통계
+        </button>
+        <button class="btn-add" id="btn-add">
+          <i class="icon">＋</i> 책 추가
+        </button>
+      </div>
     </div>
   </header>
 
@@ -396,6 +532,13 @@
             <div class="form-group">
               <label for="input-date">읽은 날짜</label>
               <input type="date" id="input-date" />
+            </div>
+
+            <div class="form-group">
+              <label for="input-genre">장르</label>
+              <select id="input-genre">
+                <option value="">선택 안 함</option>
+              </select>
             </div>
 
             <div class="form-group">
@@ -444,6 +587,29 @@
       <p class="empty-desc">상단의 '책 추가' 버튼을 눌러<br>첫 번째 독서 기록을 남겨보세요.</p>
     </div>
 
+    <section id="stats-section">
+      <div class="stats-header">
+        <h2 class="list-title">📊 <span><span id="stats-year"></span>년 독서 통계</span></h2>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>올해 읽은 책</h3>
+          <div class="stat-hero"><span class="num" id="stat-year-count">0</span><span class="unit">권</span></div>
+          <p class="stat-note" id="stat-year-note"></p>
+        </div>
+        <div class="stat-card">
+          <h3>가장 많이 읽은 장르 Top 3</h3>
+          <div id="stat-genres"></div>
+          <p class="stat-note" id="stat-genre-note"></p>
+        </div>
+        <div class="stat-card full">
+          <h3>월별 읽은 권수</h3>
+          <div class="month-chart" id="month-chart" role="img"></div>
+          <div class="month-labels" id="month-labels"></div>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <script>
@@ -469,7 +635,8 @@
       const id    = Date.now() + _idCounter++;
       const books = loadBooks();
       books.unshift({ id, title: formData.title, author: formData.author,
-                      date: formData.date, rating: formData.rating, review: formData.review });
+                      date: formData.date, rating: formData.rating, review: formData.review,
+                      genre: formData.genre });
       saveBooks(books);
       return id;
     }
@@ -530,7 +697,7 @@
               <h3 class="card-title">${escapeHtml(book.title)}</h3>
               <button class="btn-delete" data-id="${book.id}" aria-label="삭제">🗑</button>
             </div>
-            <p class="card-author">✍️ ${escapeHtml(book.author)}</p>
+            <p class="card-author">✍️ ${escapeHtml(book.author)}${book.genre ? `<span class="card-genre">${escapeHtml(book.genre)}</span>` : ''}</p>
             ${starsHtml}
             ${reviewHtml}
             <div class="card-footer">📅 ${dateLabel}</div>
@@ -548,6 +715,7 @@
     const inputTitle  = document.getElementById('input-title');
     const inputAuthor = document.getElementById('input-author');
     const inputDate   = document.getElementById('input-date');
+    const inputGenre  = document.getElementById('input-genre');
     const inputMemo   = document.getElementById('input-memo');
     const titleError  = document.getElementById('title-error');
     const btnSave     = document.getElementById('btn-save');
@@ -582,6 +750,10 @@
 
     /* "책 추가" 버튼: 폼 토글 + 오늘 날짜 세팅 */
     document.getElementById('btn-add').addEventListener('click', () => {
+      if (container.classList.contains('stats-mode')) {
+        showStats(false);
+        formSection.classList.remove('visible');
+      }
       formSection.classList.toggle('visible');
       if (formSection.classList.contains('visible')) {
         inputDate.value = today();
@@ -609,6 +781,7 @@
         date:   inputDate.value,
         rating: ratingEl ? parseInt(ratingEl.value, 10) : 0,
         review: inputMemo.value.trim(),
+        genre:  inputGenre.value,
       });
 
       formSection.classList.remove('visible');
@@ -657,6 +830,95 @@
       if (confirmNo) {
         confirmNo.closest('.card-confirm').remove();
       }
+    });
+
+    /* ───────── 독서 통계 ───────── */
+    const GENRES = ['소설', '에세이', '시', '인문', '역사', '자기계발', '경제·경영', '과학', '예술', '만화', '기타'];
+    inputGenre.insertAdjacentHTML('beforeend',
+      GENRES.map(g => `<option value="${g}">${g}</option>`).join(''));
+
+    const container = document.querySelector('.container');
+    const btnStats  = document.getElementById('btn-stats');
+
+    /* "읽은 책" = 읽은 날짜가 있는 기록. 월별·올해 집계는 읽은 날짜 기준 */
+    function computeStats(books, year) {
+      const monthly = Array(12).fill(0);
+      let undated = 0;
+      books.forEach(b => {
+        if (!b.date) { undated++; return; }
+        const [y, m] = b.date.split('-').map(Number);
+        if (y === year) monthly[m - 1]++;
+      });
+
+      /* 장르 Top 3는 전체 기록 기준. 동점이면 장르 목록 순서 */
+      const genreCount = new Map();
+      let noGenre = 0;
+      books.forEach(b => {
+        if (b.genre) genreCount.set(b.genre, (genreCount.get(b.genre) || 0) + 1);
+        else noGenre++;
+      });
+      const order = g => { const i = GENRES.indexOf(g); return i < 0 ? GENRES.length : i; };
+      const topGenres = [...genreCount]
+        .sort((a, b) => b[1] - a[1] || order(a[0]) - order(b[0]))
+        .slice(0, 3);
+
+      return { monthly, yearCount: monthly.reduce((s, n) => s + n, 0), undated, topGenres, noGenre };
+    }
+
+    function renderStats() {
+      const books = loadBooks();
+      const now   = new Date();
+      const year  = now.getFullYear();
+      const st    = computeStats(books, year);
+
+      document.getElementById('stats-year').textContent = year;
+      document.getElementById('stat-year-count').textContent = st.yearCount;
+      document.getElementById('stat-year-note').textContent =
+        `전체 기록 ${books.length}권 중 읽은 날짜가 ${year}년인 책` +
+        (st.undated ? ` · 날짜 미입력 ${st.undated}권 제외` : '');
+
+      /* 장르 Top 3 */
+      const genresEl = document.getElementById('stat-genres');
+      if (st.topGenres.length === 0) {
+        genresEl.innerHTML = '<p class="stat-empty">아직 장르가 입력된 책이 없어요.<br>책을 추가할 때 장르를 선택해 보세요.</p>';
+      } else {
+        const max = st.topGenres[0][1];
+        genresEl.innerHTML = `<ol class="genre-list">${st.topGenres.map(([g, n], i) => `
+          <li class="genre-row">
+            <span class="genre-rank">${i + 1}</span>
+            <span class="genre-name">${escapeHtml(g)}</span>
+            <span class="genre-count">${n}권</span>
+            <div class="genre-track"><div class="genre-fill" style="width:${(n / max) * 100}%"></div></div>
+          </li>`).join('')}</ol>`;
+      }
+      document.getElementById('stat-genre-note').textContent =
+        '전체 기록 기준' + (st.noGenre ? ` · 장르 미입력 ${st.noGenre}권 제외` : '');
+
+      /* 월별 막대그래프 — 막대 높이는 가장 많이 읽은 달을 100%로 */
+      const maxMonth = Math.max(...st.monthly, 1);
+      const chart = document.getElementById('month-chart');
+      chart.innerHTML = st.monthly.map((n, i) => n
+        ? `<div class="month-col" tabindex="0" data-tip="${i + 1}월 · ${n}권">
+             <span class="month-value">${n}</span>
+             <div class="month-bar" style="height:${(n / maxMonth) * 100}%"></div>
+           </div>`
+        : `<div class="month-col"></div>`).join('');
+      chart.setAttribute('aria-label',
+        `${year}년 월별 읽은 권수: ` + st.monthly.map((n, i) => `${i + 1}월 ${n}권`).join(', '));
+      document.getElementById('month-labels').innerHTML = st.monthly.map((_, i) =>
+        `<span class="${i === now.getMonth() ? 'current' : ''}">${i + 1}월</span>`).join('');
+    }
+
+    function showStats(on) {
+      container.classList.toggle('stats-mode', on);
+      btnStats.classList.toggle('active', on);
+      btnStats.setAttribute('aria-pressed', String(on));
+      if (on) renderStats();
+    }
+
+    /* "통계" 버튼: 통계 화면 ↔ 목록 화면 전환 */
+    btnStats.addEventListener('click', () => {
+      showStats(!container.classList.contains('stats-mode'));
     });
 
     render();
