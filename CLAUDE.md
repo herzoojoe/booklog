@@ -7,48 +7,69 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 단일 HTML 파일 독서 기록 웹앱. 외부 라이브러리 없음 — 순수 HTML + CSS + JavaScript.
 
 **Entry point:** `booklog/index.html` (브라우저에서 직접 열기, 서버 불필요)
+루트의 `index.html`은 GitHub Pages용 리다이렉트(`→ booklog/`)일 뿐이다.
 
 ## Architecture
 
 모든 코드가 `booklog/index.html` 한 파일에 존재한다. 구조:
 
 ```
-<style>   CSS (변수, 레이아웃, 컴포넌트)
-<body>    header / #form-section / .list-controls / #book-list / #empty-state
-<script>  데이터 레이어 + 이벤트 핸들러
+<style>   CSS (변수, 레이아웃, 컴포넌트, 통계 화면)
+<body>    header(.header-actions: #btn-stats, #btn-add)
+          .container > #form-section / #list-section / #empty-state / #stats-section
+<script>  데이터 레이어 + 목록 렌더링 + 이벤트 핸들러 + 독서 통계
 ```
 
-**데이터 흐름:** `books` 배열(메모리) ↔ `localStorage("booklog_books")` ↔ DOM (`render()` 전체 재생성 방식)
+**데이터 흐름:** `localStorage("booklog")` ↔ DOM. 메모리에 배열을 들고 있지 않고, 매번 `loadBooks()`로 읽어 `saveBooks()`로 쓴다. 화면은 `render()`가 카드 HTML 전체를 재생성.
 
 **Book 스키마:**
 ```js
-{ id, title, author, status, rating, memo, createdAt }
-// status: "want" | "reading" | "done"
-// rating: 1~5 (status === "done"일 때만 유효, 그 외 0)
+{ id, title, author, date, rating, review, genre }
+// id:     Date.now() + 카운터 (number)
+// date:   "YYYY-MM-DD" 또는 "" (읽은 날짜)
+// rating: 1~5 (별점을 골라야 저장 버튼이 활성화됨)
+// review: 한 줄 감상 (선택)
+// genre:  GENRES 중 하나 또는 "" — 이 필드가 없는 예전 기록도 있으므로 항상 optional로 취급
 ```
 
 **핵심 함수:**
-- `saveBook(formData)` — 객체 생성 → `books.unshift()` → persist → render
-- `deleteBook(id)` — filter → persist → render
-- `render()` — `sortBooks()` 결과로 카드 HTML 전체 재생성
-- `sortBooks(criteria)` — 원본 `books` 배열 불변, 복사본 정렬 반환
+- `loadBooks()` / `saveBooks(books)` — localStorage 읽기/쓰기 (용량 초과 시 alert)
+- `addBook(formData)` — 객체 생성 → `unshift()` → 저장
+- `updateBookGenre(id, genre)` — 기존 책의 장르만 수정
+- `deleteBook(id)` — filter → 저장
+- `sortBooks(books, mode)` — 복사본 정렬 반환 (`"date"` 최근순, 날짜 없는 책은 뒤로 / `"rating"` 별점순)
+- `render()` — `renderCards(sortBooks(loadBooks(), sortMode))`
+- `computeStats(books, year)` / `renderStats()` — 독서 통계 계산·표시
+- `showStats(on)` — 목록 ↔ 통계 화면 전환
+
+## 화면 동작
+
+- **목록 화면:** '책 추가' 버튼이 폼을 토글. 카드 클릭은 `#card-grid` 이벤트 위임으로 처리 (삭제 → 인라인 확인, 장르 태그 → 인라인 `<select>`로 교체, 선택 즉시 저장 / Esc·focusout 시 `render()`로 취소).
+- **통계 화면:** `.container`에 `stats-mode` 클래스를 붙이면 CSS가 폼·목록·빈 화면을 숨기고 `#stats-section`만 표시한다. 통계 모드에서 '책 추가'를 누르면 목록으로 돌아가며 폼이 열린다.
+- **통계 규칙:**
+  - 올해 권수·월별 막대그래프는 `date` 기준 (날짜 없는 책은 제외하고 제외 권수를 표시)
+  - 장르 Top 3는 **전체 기록** 기준, 동점이면 `GENRES` 배열 순서
+  - 월별 막대는 가장 많은 달을 100% 높이로, 막대 위 권수 + hover/focus 말풍선(`data-tip`)
 
 ## Key Constraints
 
-- **XSS 방어:** 사용자 입력은 반드시 `escapeHtml()`을 거쳐 DOM에 삽입
+- **XSS 방어:** 사용자 입력(제목·저자·감상·장르)은 반드시 `escapeHtml()`을 거쳐 DOM에 삽입
+- **기존 데이터 호환:** 새 필드를 추가할 때는 그 필드가 없는 예전 기록이 있어도 깨지지 않게 할 것
+- **디자인:** `:root`의 CSS 변수(`--primary`, `--accent`, `--bg`, `--border` 등)를 재사용. 그래프 막대도 `--accent` 한 색
 - **별점 UI:** CSS `direction: rtl` + 형제 선택자 트릭으로 좌→우 채움 구현. 라디오 인풋은 `display:none` — label 클릭으로 선택
-- **반응형:** 520px 이하에서 폼 2열 → 1열 전환
+- **반응형:** 520px 이하에서 폼 2열 → 1열 전환, 월별 그래프 라벨 축소. 768px 이상에서 카드·통계 카드 2열
 
 ## Testing
 
 테스트는 Playwright로 수행한다 (서버 없이 `file://` URL 직접 로드).
 
 ```powershell
-# 테스트 환경 임시 구성
-cd booklog
+# 테스트 환경 임시 구성 (저장소 밖 임시 폴더 권장)
 npm init -y
 npm install playwright
 node_modules\.bin\playwright install chromium
 ```
 
-별점 라디오 인풋은 `display:none`이므로 Playwright에서 `.check()` 대신 `label[for="rN"]`을 `.click()` 해야 한다.
+- 별점 라디오 인풋은 `display:none`이므로 Playwright에서 `.check()` 대신 `label[for="rN"]`을 `.click()` 해야 한다.
+- 테스트 데이터는 `localStorage.setItem('booklog', JSON.stringify([...]))` 후 `reload()`로 주입한다.
+- 장르 편집은 `.card-genre` 클릭 → `.card-genre-select`에 `selectOption()`.
