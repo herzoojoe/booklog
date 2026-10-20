@@ -9,6 +9,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Entry point:** `booklog/index.html` (브라우저에서 직접 열기, 서버 불필요)
 루트의 `index.html`은 GitHub Pages용 리다이렉트(`→ booklog/`)일 뿐이다.
 
+**별도 페이지:** `meetup/index.html` — BookLog와 무관한 모임 안내 단일 페이지. 내용은 파일 맨 위 `MEETING` 객체에서만 수정하고, 빈 값("")인 항목은 화면에서 숨겨진다.
+
 ## Architecture
 
 모든 코드가 `booklog/index.html` 한 파일에 존재한다. 구조:
