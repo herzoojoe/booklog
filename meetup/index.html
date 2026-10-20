@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<!--
+  ==========================================================
+  ✏️ 모임 정보는 여기만 바꾸면 됩니다.
+  - 따옴표("") 안의 글자만 고치세요. 따옴표와 쉼표(,)는 지우지 마세요.
+  - 비워 두고 싶은 칸은 "" 처럼 따옴표만 남기면 그 줄이 화면에서 숨겨집니다.
+  ==========================================================
+-->
+<script>
+  const MEETING = {
+    name:    "동네 독서모임",
+    intro:   "한 달에 한 번, 같은 책을 읽고 이야기 나눠요.",
+    date:    "2026년 11월 14일 (토) 오후 2시",
+    place:   "○○동 주민센터 2층 작은 회의실",
+    mapLink: "https://map.naver.com/",
+    fee:     "1인 5,000원 (다과비)",
+    contact: "010-1234-5678"
+  };
+</script>
+<!-- ============ 이 아래는 고치지 않아도 됩니다 ============ -->
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>모임 안내</title>
+  <style>
+    :root {
+      --primary:   #4a3728;
+      --accent:    #b5723a;
+      --bg:        #f5f1eb;
+      --surface:   #ffffff;
+      --border:    #ddd8cf;
+      --text:      #2c2018;
+      --text-sub:  #7a6e63;
+      --radius-md: 14px;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo",
+                   "Malgun Gothic", "Noto Sans KR", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 20px;
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+
+    header {
+      background: var(--primary);
+      color: #fff;
+      padding: 40px 20px 32px;
+      text-align: center;
+    }
+    header h1 { font-size: 32px; line-height: 1.3; }
+    header p  { margin-top: 10px; font-size: 19px; opacity: 0.85; }
+
+    main {
+      max-width: 560px;
+      margin: 0 auto;
+      padding: 24px 16px 48px;
+    }
+
+    .item {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .label {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .value {
+      margin-top: 4px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .btn {
+      display: block;
+      margin-top: 14px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      color: #fff;
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      text-decoration: none;
+    }
+    .btn:active { opacity: 0.85; }
+
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1 id="name"></h1>
+    <p id="intro"></p>
+  </header>
+
+  <main>
+    <section class="item" id="row-date">
+      <div class="label">📅 다음 모임</div>
+      <div class="value" id="date"></div>
+    </section>
+
+    <section class="item" id="row-place">
+      <div class="label">📍 장소</div>
+      <div class="value" id="place"></div>
+      <a class="btn" id="map" target="_blank" rel="noopener">지도 보기</a>
+    </section>
+
+    <section class="item" id="row-fee">
+      <div class="label">💰 회비</div>
+      <div class="value" id="fee"></div>
+    </section>
+
+    <section class="item" id="row-contact">
+      <div class="label">📞 연락처</div>
+      <div class="value" id="contact"></div>
+      <a class="btn" id="call">전화 걸기</a>
+    </section>
+  </main>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const val = (key) => String(MEETING[key] ?? "").trim();
+
+    // 글자는 textContent로 넣어 HTML로 해석되지 않게 한다
+    function fill(key, rowId) {
+      $(key).textContent = val(key);
+      if (rowId && !val(key)) $(rowId).hidden = true;
+    }
+
+    document.title = val("name") || "모임 안내";
+    fill("name");
+    fill("intro");
+    $("intro").hidden = !val("intro");
+    fill("date",    "row-date");
+    fill("place",   "row-place");
+    fill("fee",     "row-fee");
+    fill("contact", "row-contact");
+
+    // 지도 링크: http(s) 주소일 때만 버튼 표시
+    const mapLink = val("mapLink");
+    if (/^https?:\/\//i.test(mapLink)) $("map").href = mapLink;
+    else $("map").hidden = true;
+
+    // 연락처가 전화번호처럼 보이면 '전화 걸기' 버튼 표시
+    const digits = val("contact").replace(/[^\d+]/g, "");
+    if (/^\+?\d{8,}$/.test(digits) && !/[a-z@]/i.test(val("contact"))) $("call").href = "tel:" + digits;
+    else $("call").hidden = true;
+  </script>
+</body>
+</html>
