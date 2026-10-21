@@ -23,7 +23,11 @@
   - 제목에 '연락처'나 '전화'가 들어간 칸에 전화번호가 있으면 '전화 걸기' 버튼이
     생겨요. 번호를 여러 개 쓰면 첫 번째 번호로 걸려요.
   - 날짜를 연도까지 쓰면(예: 2026년 11월 14일) 남은 날(D-3)을 보여 주고,
-    날짜가 지나면 '지난 모임'이라고 알려 줘요.
+    모임 당일에는 '오늘 모임이 있습니다', 날짜가 지나면 '지난 모임'이라고 알려 줘요.
+  - 제목에 '정기 모임'이 들어간 줄은 올해 모임 일정표가 돼요.
+      예) 🗓️ 정기 모임: 매달 둘째 주 토요일
+      '첫째/둘째/셋째/넷째/마지막' 과 '월~일요일'을 바꿔 쓸 수 있어요.
+      지난 모임은 흐리게 보이고, '다음 모임' 날짜가 규칙과 다르면 그 달만 바꿔 보여 줘요.
   - 잘못 쓴 줄이 있으면 페이지 맨 위에 노란 안내가 떠요.
 
   저장한 뒤에는
@@ -39,6 +43,7 @@
 지도 링크: https://map.naver.com/
 💰 회비: 1인 5,000원 (다과비)
 📞 연락처: 010-1234-5678
+🗓️ 정기 모임: 매달 둘째 주 토요일
 </script>
 <!--
   📣 단톡방 미리보기: 카카오톡 등에 링크를 올렸을 때 보이는 제목과 설명이에요.
@@ -159,6 +164,35 @@
       font-weight: 600;
     }
 
+    .schedule-year {
+      margin-top: 12px;
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text-sub);
+    }
+    .schedule {
+      list-style: none;
+      margin-top: 6px;
+      border-top: 1px solid var(--border);
+    }
+    .schedule li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .schedule li:last-child { border-bottom: none; }
+    .schedule .note {
+      font-size: 16px;
+      color: var(--text-sub);
+      text-align: right;
+    }
+    .schedule li.past { opacity: 0.4; }
+    .schedule li.next { font-weight: 700; }
+    .schedule li.next .note { color: var(--accent); font-weight: 700; }
+
     .btn {
       display: block;
       margin-top: 14px;
@@ -245,13 +279,105 @@
       return date;
     }
 
-    function dateBadge(date) {
+    function daysUntil(date) {
       var now = new Date();
       var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var days = Math.round((date - today) / 86400000);
-      if (days < 0)   return el("span", "badge past", "지난 모임이에요 · 다음 일정은 연락처로 문의해 주세요");
-      if (days === 0) return el("span", "badge", "오늘이에요!");
-      return el("span", "badge", "D-" + days);
+      return Math.round((date - today) / 86400000);
+    }
+
+    var WEEKDAYS = "일월화수목금토";
+    var ORDINALS = { "첫째": 1, "첫번째": 1, "1번째": 1, "둘째": 2, "두번째": 2, "2번째": 2,
+                     "셋째": 3, "세번째": 3, "3번째": 3, "넷째": 4, "네번째": 4, "4번째": 4, "마지막": -1 };
+
+    function formatDate(date) {
+      return (date.getMonth() + 1) + "월 " + date.getDate() + "일 (" + WEEKDAYS.charAt(date.getDay()) + ")";
+    }
+
+    // "매달 둘째 주 토요일" → { nth: 2, weekday: 6 } (이해 못 하면 null)
+    function parseRule(text) {
+      var m = text.replace(/\s+/g, "").match(/(첫째|첫번째|1번째|둘째|두번째|2번째|셋째|세번째|3번째|넷째|네번째|4번째|마지막)주?([일월화수목금토])요일/);
+      return m ? { nth: ORDINALS[m[1]], weekday: WEEKDAYS.indexOf(m[2]) } : null;
+    }
+
+    // 그 달의 n번째 요일 (nth가 -1이면 마지막 요일)
+    function ruleDate(year, month, rule) {
+      if (rule.nth > 0) {
+        var first = new Date(year, month, 1).getDay();
+        return new Date(year, month, 1 + (rule.weekday - first + 7) % 7 + (rule.nth - 1) * 7);
+      }
+      var last = new Date(year, month + 1, 0);
+      return new Date(year, month, last.getDate() - (last.getDay() - rule.weekday + 7) % 7);
+    }
+
+    // 오늘 이후(오늘 포함) 첫 정기 모임 날짜
+    function nextRuleDate(rule) {
+      var now = new Date();
+      for (var i = 0; i < 13; i++) {
+        var date = ruleDate(now.getFullYear(), now.getMonth() + i, rule);
+        if (daysUntil(date) >= 0) return date;
+      }
+      return null;
+    }
+
+    function dateBadge(date, rule) {
+      var days = daysUntil(date);
+      if (days === 0) return el("span", "badge", "오늘 모임이 있습니다");
+      if (days > 0)   return el("span", "badge", "D-" + days);
+      var next = rule ? nextRuleDate(rule) : null;
+      if (!next) return el("span", "badge past", "지난 모임이에요 · 다음 일정은 연락처로 문의해 주세요");
+      var left = daysUntil(next);
+      return el("span", "badge past", "지난 모임이에요 · 다음 정기 모임은 " + formatDate(next) +
+                (left === 0 ? " 오늘" : ", D-" + left));
+    }
+
+    // 올해 1~12월 정기 모임 일정표. override(다음 모임 날짜)가 있으면 그 달 날짜를 바꾼다
+    function scheduleSection(row, rule, override) {
+      var section = el("section", "item");
+      section.appendChild(el("div", "label", row.title));
+      section.appendChild(el("div", "value", row.value));
+
+      var year = new Date().getFullYear();
+      section.appendChild(el("div", "schedule-year", year + "년 모임 일정"));
+      var list = el("ul", "schedule");
+      var nextMarked = false;
+
+      for (var month = 0; month < 12; month++) {
+        var date = ruleDate(year, month, rule);
+        var changed = false;
+        if (override && override.getFullYear() === year && override.getMonth() === month &&
+            override.getDate() !== date.getDate()) {
+          date = override;
+          changed = true;
+        }
+
+        var days = daysUntil(date);
+        var notes = [];
+        var li = el("li");
+        if (days < 0) {
+          li.className = "past";
+          notes.push("지남");
+        } else if (!nextMarked) {
+          li.className = "next";
+          notes.push(days === 0 ? "오늘" : "다음 모임 · D-" + days);
+          nextMarked = true;
+        }
+        if (changed) notes.push("날짜 변경");
+
+        li.appendChild(el("span", "when", formatDate(date)));
+        if (notes.length) li.appendChild(el("span", "note", notes.join(" · ")));
+        list.appendChild(li);
+      }
+
+      // 올해 모임이 모두 끝났으면 내년 첫 모임을 덧붙인다
+      if (!nextMarked) {
+        var nextYear = ruleDate(year + 1, 0, rule);
+        var nextLi = el("li", "next");
+        nextLi.appendChild(el("span", "when", "내년 " + formatDate(nextYear)));
+        nextLi.appendChild(el("span", "note", "다음 모임 · D-" + daysUntil(nextYear)));
+        list.appendChild(nextLi);
+      }
+      section.appendChild(list);
+      return section;
     }
 
     // "오후 2시"가 "오후 / 2시"로 갈라지지 않게 붙인다
@@ -290,18 +416,34 @@
         if (!mapUrl) problems.push("'지도 링크'가 인터넷 주소가 아니에요 → " + mapRaw);
       }
 
+      // 정기 모임 규칙과, 일정표에 반영할 '다음 모임' 날짜를 먼저 찾아 둔다
+      var rule = null, ruleRow = null, meetingDate = null;
+      cards.forEach(function (row) {
+        if (!ruleRow && keyOf(row.title).indexOf("정기모임") !== -1) ruleRow = row;
+        else if (!meetingDate && row.value) meetingDate = parseDate(row.value);
+      });
+      if (ruleRow && ruleRow.value) {
+        rule = parseRule(ruleRow.value);
+        if (!rule) problems.push("'" + ruleRow.title + "'을 이해하지 못했어요. 예) 매달 둘째 주 토요일 → " + ruleRow.value);
+      }
+
       var main = document.getElementById("cards");
       var mapPlaced = false, datePlaced = false;
 
       cards.forEach(function (row) {
+        if (row === ruleRow && rule) {
+          main.appendChild(scheduleSection(row, rule, meetingDate));
+          return;
+        }
+
         var key = keyOf(row.title);
         var section = el("section", "item");
         section.appendChild(el("div", "label", row.title));
         if (row.value) section.appendChild(el("div", "value", keepTimeTogether(row.value)));
 
-        var date = !datePlaced && row.value ? parseDate(row.value) : null;
+        var date = !datePlaced && row !== ruleRow && row.value ? parseDate(row.value) : null;
         if (date) {
-          section.appendChild(dateBadge(date));
+          section.appendChild(dateBadge(date, rule));
           datePlaced = true;
         }
 
