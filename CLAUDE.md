@@ -81,3 +81,7 @@ node_modules\.bin\playwright install chromium
 - 별점 라디오 인풋은 `display:none`이므로 Playwright에서 `.check()` 대신 `label[for="rN"]`을 `.click()` 해야 한다.
 - 테스트 데이터는 `localStorage.setItem('booklog', JSON.stringify([...]))` 후 `reload()`로 주입한다.
 - 장르 편집은 `.card-genre` 클릭 → `.card-genre-select`에 `selectOption()`.
+
+**모임 안내 페이지 테스트:** `meetup/test/meetup-test.js` (Playwright 1.45+, `page.clock`으로 날짜 고정).
+`NODE_PATH=<playwright 설치 폴더>/node_modules node meetup/test/meetup-test.js` → "N개 중 M개 통과", 실패 시 종료 코드 1.
+기대값은 내용 모음에서 읽으므로 모임 내용을 바꿔도 테스트를 고칠 필요가 없다.
