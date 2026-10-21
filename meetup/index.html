@@ -61,43 +61,43 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <style>
-    /* 따뜻하고 밝은 색감: 크림 배경 + 살구색 머리말 + 주황 버튼 + 햇살 노랑 배지 */
+    /* 차분하고 단정한 색감: 맑은 회백색 배경 + 짙은 남색 머리말 + 푸른 회색 포인트 */
     :root {
-      --header-from: #ffe7c7;
-      --header-to:   #ffcfa6;
-      --header-text: #4a2814;
-      --accent:      #d4552f;
-      --accent-text: #b8441f;
+      --header-from: #2f3e4e;
+      --header-to:   #2f3e4e;
+      --header-text: #f4f6f8;
+      --accent:      #3d5a73;
+      --accent-text: #3d5a73;
       --on-accent:   #ffffff;
-      --sun:         #ffd36b;
-      --on-sun:      #5a3300;
-      --bg:          #fff8ef;
+      --sun:         #e6ecf1;
+      --on-sun:      #2f4558;
+      --bg:          #f5f6f7;
       --surface:     #ffffff;
-      --tint:        #fff1e2;
-      --border:      #f6dfc8;
-      --text:        #3d2a1e;
-      --text-sub:    #8a6550;
+      --tint:        #eef2f5;
+      --border:      #dde2e7;
+      --text:        #222a31;
+      --text-sub:    #5f6b76;
       --notice-bg:   #fff4c2;
       --notice-tx:   #5c4700;
-      --radius-md:   20px;
-      --shadow-sm:   0 4px 16px rgba(214, 110, 50, 0.10);
+      --radius-md:   10px;
+      --shadow-sm:   none;
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --header-from: #4a2e1d;
-        --header-to:   #5c3721;
-        --header-text: #fff0e0;
-        --accent:      #ff8f5e;
-        --accent-text: #ffa77f;
-        --on-accent:   #2a1206;
-        --sun:         #ffcf5c;
-        --on-sun:      #3a2200;
-        --bg:          #221812;
-        --surface:     #2e221a;
-        --tint:        #3a2a1f;
-        --border:      #463428;
-        --text:        #fbeee0;
-        --text-sub:    #c9ad98;
+        --header-from: #1f2830;
+        --header-to:   #1f2830;
+        --header-text: #e9eef2;
+        --accent:      #8fb0c9;
+        --accent-text: #a9c3d6;
+        --on-accent:   #10202c;
+        --sun:         #26303a;
+        --on-sun:      #c9d8e4;
+        --bg:          #15191d;
+        --surface:     #1d2328;
+        --tint:        #26303a;
+        --border:      #2f3942;
+        --text:        #e6eaee;
+        --text-sub:    #9aa6b1;
         --notice-bg:   #3d3410;
         --notice-tx:   #f5e3a0;
         --shadow-sm:   none;
@@ -131,12 +131,11 @@
     header {
       background: linear-gradient(160deg, var(--header-from), var(--header-to));
       color: var(--header-text);
-      padding: 44px 20px 36px;
+      padding: 40px 20px 32px;
       text-align: center;
-      border-radius: 0 0 32px 32px;
     }
-    header h1 { font-size: 32px; line-height: 1.3; }
-    header p  { margin-top: 10px; font-size: 19px; opacity: 0.85; }
+    header h1 { font-size: 32px; line-height: 1.3; letter-spacing: -0.01em; }
+    header p  { margin-top: 10px; font-size: 19px; opacity: 0.8; }
 
     main {
       max-width: 560px;
@@ -150,7 +149,7 @@
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-sm);
       padding: 20px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .label {
       font-size: 17px;
@@ -165,17 +164,17 @@
     .badge {
       display: inline-block;
       margin-top: 8px;
-      padding: 2px 14px;
-      border-radius: 999px;
+      padding: 2px 12px;
+      border-radius: 6px;
       background: var(--sun);
       color: var(--on-sun);
       font-size: 17px;
       font-weight: 700;
     }
     .badge.past {
-      border-radius: 12px;
-      background: var(--tint);
+      background: transparent;
       color: var(--text-sub);
+      border: 1px solid var(--border);
       font-weight: 600;
     }
 
@@ -206,10 +205,9 @@
     }
     .schedule li.past { opacity: 0.45; }
     .schedule li.next {
-      margin: 4px -10px;
+      margin: 0 -10px;
       padding: 10px;
-      border-bottom-color: transparent;
-      border-radius: 12px;
+      border-left: 3px solid var(--accent);
       background: var(--tint);
       font-weight: 700;
     }
@@ -219,14 +217,13 @@
       display: block;
       margin-top: 14px;
       padding: 16px;
-      border-radius: 999px;
+      border-radius: var(--radius-md);
       background: var(--accent);
       color: var(--on-accent);
       font-size: 20px;
       font-weight: 700;
       text-align: center;
       text-decoration: none;
-      box-shadow: 0 3px 10px rgba(212, 85, 47, 0.25);
     }
     .btn:active { opacity: 0.85; }
     .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
