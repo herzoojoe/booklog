@@ -61,31 +61,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
   <style>
+    /* 따뜻하고 밝은 색감: 크림 배경 + 살구색 머리말 + 주황 버튼 + 햇살 노랑 배지 */
     :root {
-      --primary:   #4a3728;
-      --accent:    #b5723a;
-      --bg:        #f5f1eb;
-      --surface:   #ffffff;
-      --border:    #ddd8cf;
-      --text:      #2c2018;
-      --text-sub:  #7a6e63;
-      --notice-bg: #fff4c2;
-      --notice-tx: #5c4700;
-      --radius-md: 14px;
-      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+      --header-from: #ffe7c7;
+      --header-to:   #ffcfa6;
+      --header-text: #4a2814;
+      --accent:      #d4552f;
+      --accent-text: #b8441f;
+      --on-accent:   #ffffff;
+      --sun:         #ffd36b;
+      --on-sun:      #5a3300;
+      --bg:          #fff8ef;
+      --surface:     #ffffff;
+      --tint:        #fff1e2;
+      --border:      #f6dfc8;
+      --text:        #3d2a1e;
+      --text-sub:    #8a6550;
+      --notice-bg:   #fff4c2;
+      --notice-tx:   #5c4700;
+      --radius-md:   20px;
+      --shadow-sm:   0 4px 16px rgba(214, 110, 50, 0.10);
     }
     @media (prefers-color-scheme: dark) {
       :root {
-        --primary:   #2e2219;
-        --accent:    #c98446;
-        --bg:        #1a1511;
-        --surface:   #262019;
-        --border:    #3d342b;
-        --text:      #f0e9df;
-        --text-sub:  #b3a698;
-        --notice-bg: #3d3410;
-        --notice-tx: #f5e3a0;
-        --shadow-sm: none;
+        --header-from: #4a2e1d;
+        --header-to:   #5c3721;
+        --header-text: #fff0e0;
+        --accent:      #ff8f5e;
+        --accent-text: #ffa77f;
+        --on-accent:   #2a1206;
+        --sun:         #ffcf5c;
+        --on-sun:      #3a2200;
+        --bg:          #221812;
+        --surface:     #2e221a;
+        --tint:        #3a2a1f;
+        --border:      #463428;
+        --text:        #fbeee0;
+        --text-sub:    #c9ad98;
+        --notice-bg:   #3d3410;
+        --notice-tx:   #f5e3a0;
+        --shadow-sm:   none;
       }
     }
 
@@ -114,10 +129,11 @@
     #notice ul { margin: 6px 0 0 20px; }
 
     header {
-      background: var(--primary);
-      color: #fff;
-      padding: 40px 20px 32px;
+      background: linear-gradient(160deg, var(--header-from), var(--header-to));
+      color: var(--header-text);
+      padding: 44px 20px 36px;
       text-align: center;
+      border-radius: 0 0 32px 32px;
     }
     header h1 { font-size: 32px; line-height: 1.3; }
     header p  { margin-top: 10px; font-size: 19px; opacity: 0.85; }
@@ -149,18 +165,17 @@
     .badge {
       display: inline-block;
       margin-top: 8px;
-      padding: 2px 12px;
+      padding: 2px 14px;
       border-radius: 999px;
-      background: var(--accent);
-      color: #fff;
+      background: var(--sun);
+      color: var(--on-sun);
       font-size: 17px;
       font-weight: 700;
     }
     .badge.past {
-      border-radius: 10px;
-      background: transparent;
+      border-radius: 12px;
+      background: var(--tint);
       color: var(--text-sub);
-      border: 1px solid var(--border);
       font-weight: 600;
     }
 
@@ -189,21 +204,29 @@
       color: var(--text-sub);
       text-align: right;
     }
-    .schedule li.past { opacity: 0.4; }
-    .schedule li.next { font-weight: 700; }
-    .schedule li.next .note { color: var(--accent); font-weight: 700; }
+    .schedule li.past { opacity: 0.45; }
+    .schedule li.next {
+      margin: 4px -10px;
+      padding: 10px;
+      border-bottom-color: transparent;
+      border-radius: 12px;
+      background: var(--tint);
+      font-weight: 700;
+    }
+    .schedule li.next .note { color: var(--accent-text); font-weight: 700; }
 
     .btn {
       display: block;
       margin-top: 14px;
       padding: 16px;
-      border-radius: var(--radius-md);
+      border-radius: 999px;
       background: var(--accent);
-      color: #fff;
+      color: var(--on-accent);
       font-size: 20px;
       font-weight: 700;
       text-align: center;
       text-decoration: none;
+      box-shadow: 0 3px 10px rgba(212, 85, 47, 0.25);
     }
     .btn:active { opacity: 0.85; }
     .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
