@@ -183,48 +183,86 @@ async function main() {
 
   // 3. 일정표
   const G3 = "3. 정기 모임 일정표";
+  const UPCOMING = 6;
   async function scheduleRows(src, now) {
     const { page, ctx } = await open({ src, now });
     const list = await page.$$eval(".schedule li", (lis) => lis.map((li) => ({
       when: li.querySelector(".when").textContent,
+      note: li.querySelector(".note") ? li.querySelector(".note").textContent : "",
       cls: li.className,
-      opacity: +getComputedStyle(li).opacity,
     })));
+    const years = await page.$$eval(".schedule-year", (ys) => ys.map((y) => y.textContent));
     await ctx.close();
-    return list;
+    return { list, years };
   }
-  function checkSecondWeekday(list, year, weekday) {
-    if (list.length !== 12) return `일정이 ${list.length}줄 (12줄이어야 함)`;
-    const wrong = list.filter((row, month) => row.when !== fmt(secondWeekday(year, month, weekday)));
-    return wrong.length === 0 ||
-      `틀린 날짜: ${wrong.map((r) => r.when).join(", ")}`;
+  // 오늘(now) 이후 둘째 주 O요일 6번 (오늘 포함, 지난 모임 제외)
+  function expectedUpcoming(now, weekday) {
+    const out = [];
+    for (let i = 0; out.length < UPCOMING; i++) {
+      const first = new Date(now.getFullYear(), now.getMonth() + i, 1); // 12월 다음은 다음 해 1월
+      const date = secondWeekday(first.getFullYear(), first.getMonth(), weekday);
+      if (date >= at(now, 0)) out.push(date);
+    }
+    return out;
+  }
+  function checkUpcoming({ list }, now, weekday) {
+    const want = expectedUpcoming(now, weekday).map(fmt);
+    const got = list.map((r) => r.when);
+    return JSON.stringify(got) === JSON.stringify(want) ||
+      `화면: ${got.join(", ")} / 기대: ${want.join(", ")}`;
   }
 
   const current = await scheduleRows(SRC, before);
-  await check(G3, `설정한 규칙(${ruleRow.value})대로 12달 날짜가 나옴`, async () =>
-    checkSecondWeekday(current, before.getFullYear(), ruleWeekday));
+  await check(G3, `설정한 규칙(${ruleRow.value})대로 다음 모임부터 ${UPCOMING}번이 나옴`, async () =>
+    checkUpcoming(current, before, ruleWeekday));
 
   await check(G3, "요일을 바꿔도 맞게 계산됨 (예: 둘째 주 토요일로 바꿔 보기)", async () => {
     const sat = secondWeekday(meeting.getFullYear(), meeting.getMonth(), 6);
     let src = withLine(SRC, "정기모임", `${ruleRow.title}: 매달 둘째 주 토요일`);
     src = withLine(src, "다음모임", `${dateRow.title}: ${sat.getFullYear()}년 ${fmt(sat)} 오후 2시`);
-    return checkSecondWeekday(await scheduleRows(src, before), before.getFullYear(), 6);
+    return checkUpcoming(await scheduleRows(src, before), before, 6);
   });
 
-  await check(G3, "지난 모임은 흐리게, 다음 모임은 강조", async () => {
-    const problems = [];
-    let nextSeen = false;
-    current.forEach((row, month) => {
-      const date = secondWeekday(before.getFullYear(), month, ruleWeekday);
-      const past = date < at(before, 0);
-      if (past && !(row.cls.includes("past") && row.opacity < 1)) problems.push(`${row.when} 흐리지 않음`);
-      if (!past && !nextSeen) {
-        if (!row.cls.includes("next")) problems.push(`${row.when} 다음 모임 표시 없음`);
-        nextSeen = true;
-      } else if (row.cls.includes("next")) problems.push(`${row.when} 잘못 강조됨`);
-    });
-    return problems.length === 0 || problems.join(", ");
+  await check(G3, "지난 모임은 안 보이고, 첫 줄이 다음 모임(D-day)으로 강조됨", async () => {
+    const first = current.list[0];
+    const days = Math.round((expectedUpcoming(before, ruleWeekday)[0] - at(before, 0)) / DAY);
+    if (!first || !first.cls.includes("next")) return "첫 줄에 다음 모임 강조가 없음";
+    if (first.note !== `다음 모임 · D-${days}`) return `첫 줄 표시가 "${first.note}"`;
+    const others = current.list.slice(1).filter((r) => r.cls.includes("next"));
+    return others.length === 0 || `다른 줄도 강조됨: ${others.map((r) => r.when).join(", ")}`;
   });
+
+  await check(G3, "모임 당일엔 그날 일정이 첫 줄에 '오늘'로 남아 있음", async () => {
+    const { list } = await scheduleRows(SRC, at(meeting, 20));
+    return (list[0] && list[0].when === fmt(meeting) && list[0].note === "오늘") ||
+      `첫 줄: ${list[0] ? list[0].when + " " + list[0].note : "없음"}`;
+  });
+
+  await check(G3, "해가 바뀌는 일정은 연도 제목이 나뉨", async () => {
+    const wantYears = [...new Set(expectedUpcoming(before, ruleWeekday).map((d) => d.getFullYear()))]
+      .map((y) => `${y}년 모임 일정`);
+    return JSON.stringify(current.years) === JSON.stringify(wantYears) ||
+      `연도 제목: ${current.years.join(", ")}`;
+  });
+
+  const tipRow = findRow(rows, "일정알림");
+  if (tipRow) {
+    await check(G3, "일정 알림 안내가 규칙 바로 아래에 보임", async () => {
+      const { page, ctx } = await open({ now: before });
+      const r = await page.evaluate(() => {
+        const tip = document.querySelector(".schedule-tip");
+        return tip && {
+          text: tip.textContent,
+          afterRule: tip.previousElementSibling && tip.previousElementSibling.className === "value",
+          visible: tip.offsetParent !== null,
+        };
+      });
+      await ctx.close();
+      if (!r || !r.visible) return "안내가 화면에 없음";
+      if (!r.afterRule) return "규칙 바로 아래가 아님";
+      return clean(r.text) === clean(tipRow.value) || `화면에는 "${r.text}"`;
+    });
+  }
 
   // 4. 자주 묻는 질문
   const G4 = "4. 자주 묻는 질문";
@@ -267,7 +305,7 @@ async function main() {
       const out = [];
       const vw = document.documentElement.clientWidth;
       if (document.documentElement.scrollWidth > vw) out.push(`화면이 옆으로 ${document.documentElement.scrollWidth - vw}px 밀림`);
-      document.querySelectorAll("h1, header p, .label, .value, .badge, .btn, .schedule-year, .schedule li span, .faq summary, .faq p, #notice")
+      document.querySelectorAll("h1, header p, .label, .value, .badge, .btn, .schedule-year, .schedule-tip, .schedule li span, .faq summary, .faq p, #notice")
         .forEach((el) => {
           if (el.offsetParent === null && el.id !== "notice") return;
           const r = el.getBoundingClientRect();
