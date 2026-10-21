@@ -4,26 +4,57 @@
 <meta charset="UTF-8">
 <!--
   ==========================================================
-  ✏️ 모임 정보는 여기만 바꾸면 됩니다.
-  - 따옴표("") 안의 글자만 고치세요. 따옴표와 쉼표(,)는 지우지 마세요.
-  - 비워 두고 싶은 칸은 "" 처럼 따옴표만 남기면 그 줄이 화면에서 숨겨집니다.
+  ✏️ 모임 정보 고치는 법 — 바로 아래 칸만 고치면 됩니다
+  ==========================================================
+  - <script ...> 줄과 </script> 줄 "사이"의 글만 고치세요.
+  - 한 줄에 하나씩 「제목: 내용」으로 씁니다. 따옴표나 쉼표는 필요 없어요.
+  - 콜론(:) 앞의 제목이 화면의 칸 제목이 됩니다.
+      예) 💰 회비  →  💰 참가비 로 바꿔도 돼요. 이모지는 지워도 돼요.
+  - 줄을 새로 쓰면 칸이 새로 생겨요.   예) 📚 이번 책: 데미안
+  - 내용을 비우거나(예: 💰 회비:) 줄을 지우면 그 칸은 화면에서 사라져요.
+
+  특별한 줄 세 가지 (제목을 바꾸지 마세요)
+  - 모임 이름: 화면 맨 위 큰 제목 (꼭 적어 주세요)
+  - 한 줄 소개: 큰 제목 아래 작은 글 (비워도 돼요)
+  - 지도 링크: '장소' 칸에 '지도 보기' 버튼으로 붙어요.
+      지도 앱의 [공유 → 링크 복사]로 받은 주소를 그대로 붙여 넣으세요.
+
+  저절로 해 주는 것
+  - 제목에 '연락처'나 '전화'가 들어간 칸에 전화번호가 있으면 '전화 걸기' 버튼이
+    생겨요. 번호를 여러 개 쓰면 첫 번째 번호로 걸려요.
+  - 날짜를 연도까지 쓰면(예: 2026년 11월 14일) 남은 날(D-3)을 보여 주고,
+    날짜가 지나면 '지난 모임'이라고 알려 줘요.
+  - 잘못 쓴 줄이 있으면 페이지 맨 위에 노란 안내가 떠요.
+
+  저장한 뒤에는
+  - master 브랜치에 저장해야 인터넷 주소에 반영돼요.
+  - 반영까지 1~2분 걸려요. 기다렸다가 새로고침하세요.
   ==========================================================
 -->
-<script>
-  const MEETING = {
-    name:    "동네 독서모임",
-    intro:   "한 달에 한 번, 같은 책을 읽고 이야기 나눠요.",
-    date:    "2026년 11월 14일 (토) 오후 2시",
-    place:   "○○동 주민센터 2층 작은 회의실",
-    mapLink: "https://map.naver.com/",
-    fee:     "1인 5,000원 (다과비)",
-    contact: "010-1234-5678"
-  };
+<script type="text/plain" id="meeting">
+모임 이름: 동네 독서모임
+한 줄 소개: 한 달에 한 번, 같은 책을 읽고 이야기 나눠요.
+📅 다음 모임: 2026년 11월 14일 (토) 오후 2시
+📍 장소: ○○동 주민센터 2층 작은 회의실
+지도 링크: https://map.naver.com/
+💰 회비: 1인 5,000원 (다과비)
+📞 연락처: 010-1234-5678
 </script>
+<!--
+  📣 단톡방 미리보기: 카카오톡 등에 링크를 올렸을 때 보이는 제목과 설명이에요.
+  - content="" 의 따옴표 안만 고치세요. 안에 큰따옴표(")는 쓰지 마세요.
+  - 날짜는 자주 바뀌니 여기엔 넣지 않는 걸 추천해요.
+  - 카카오톡은 미리보기를 한동안 저장해 두어서, 고친 뒤에도 잠시 예전 것이 보일 수 있어요.
+-->
+<title>동네 독서모임</title>
+<meta property="og:title" content="동네 독서모임">
+<meta property="og:description" content="한 달에 한 번, 같은 책을 읽고 이야기 나눠요.">
+<meta name="description" content="한 달에 한 번, 같은 책을 읽고 이야기 나눠요.">
 <!-- ============ 이 아래는 고치지 않아도 됩니다 ============ -->
 
+  <meta property="og:type" content="website">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>모임 안내</title>
+  <meta name="color-scheme" content="light dark">
   <style>
     :root {
       --primary:   #4a3728;
@@ -33,8 +64,24 @@
       --border:    #ddd8cf;
       --text:      #2c2018;
       --text-sub:  #7a6e63;
+      --notice-bg: #fff4c2;
+      --notice-tx: #5c4700;
       --radius-md: 14px;
       --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary:   #2e2219;
+        --accent:    #c98446;
+        --bg:        #1a1511;
+        --surface:   #262019;
+        --border:    #3d342b;
+        --text:      #f0e9df;
+        --text-sub:  #b3a698;
+        --notice-bg: #3d3410;
+        --notice-tx: #f5e3a0;
+        --shadow-sm: none;
+      }
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -47,7 +94,19 @@
       font-size: 20px;
       line-height: 1.6;
       word-break: keep-all;
+      /* 띄어쓰기 없는 긴 글(링크 등)도 칸 안에서 줄을 바꾼다 */
+      overflow-wrap: break-word;
+      overflow-wrap: anywhere;
     }
+
+    #notice {
+      background: var(--notice-bg);
+      color: var(--notice-tx);
+      padding: 14px 16px;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    #notice ul { margin: 6px 0 0 20px; }
 
     header {
       background: var(--primary);
@@ -82,6 +141,23 @@
       font-size: 24px;
       font-weight: 700;
     }
+    .badge {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 2px 12px;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .badge.past {
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-sub);
+      border: 1px solid var(--border);
+      font-weight: 600;
+    }
 
     .btn {
       display: block;
@@ -96,68 +172,188 @@
       text-decoration: none;
     }
     .btn:active { opacity: 0.85; }
+    .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 
     [hidden] { display: none !important; }
   </style>
 </head>
 <body>
+  <div id="notice" hidden></div>
+
   <header>
-    <h1 id="name"></h1>
-    <p id="intro"></p>
+    <h1 id="name">모임 안내</h1>
+    <p id="intro" hidden></p>
   </header>
 
-  <main>
-    <section class="item" id="row-date">
-      <div class="label">📅 다음 모임</div>
-      <div class="value" id="date"></div>
-    </section>
-
-    <section class="item" id="row-place">
-      <div class="label">📍 장소</div>
-      <div class="value" id="place"></div>
-      <a class="btn" id="map" target="_blank" rel="noopener">지도 보기</a>
-    </section>
-
-    <section class="item" id="row-fee">
-      <div class="label">💰 회비</div>
-      <div class="value" id="fee"></div>
-    </section>
-
-    <section class="item" id="row-contact">
-      <div class="label">📞 연락처</div>
-      <div class="value" id="contact"></div>
-      <a class="btn" id="call">전화 걸기</a>
-    </section>
+  <main id="cards">
+    <noscript>
+      <section class="item">이 페이지를 보려면 브라우저에서 자바스크립트를 켜 주세요.</section>
+    </noscript>
   </main>
 
   <script>
-    const $ = (id) => document.getElementById(id);
-    const val = (key) => String(MEETING[key] ?? "").trim();
+    // 오래된 휴대폰에서도 돌도록 최신 문법(?? ?. 등)은 쓰지 않는다
+    var problems = [];
 
-    // 글자는 textContent로 넣어 HTML로 해석되지 않게 한다
-    function fill(key, rowId) {
-      $(key).textContent = val(key);
-      if (rowId && !val(key)) $(rowId).hidden = true;
+    function el(tag, className, text) {
+      var node = document.createElement(tag);
+      if (className) node.className = className;
+      if (text) node.textContent = text; // textContent라 HTML로 해석되지 않는다
+      return node;
     }
 
-    document.title = val("name") || "모임 안내";
-    fill("name");
-    fill("intro");
-    $("intro").hidden = !val("intro");
-    fill("date",    "row-date");
-    fill("place",   "row-place");
-    fill("fee",     "row-fee");
-    fill("contact", "row-contact");
+    function keyOf(title) {
+      return title.replace(/\s+/g, "");
+    }
 
-    // 지도 링크: http(s) 주소일 때만 버튼 표시
-    const mapLink = val("mapLink");
-    if (/^https?:\/\//i.test(mapLink)) $("map").href = mapLink;
-    else $("map").hidden = true;
+    // 「제목: 내용」 줄들을 [{ title, value }] 로 읽는다 (첫 번째 콜론 기준)
+    function parseLines(text) {
+      var rows = [];
+      text.split(/\r?\n/).forEach(function (line) {
+        var trimmed = line.trim();
+        if (!trimmed) return;
+        var m = trimmed.match(/^([^:：]+)[:：](.*)$/);
+        if (!m || !m[1].trim()) {
+          problems.push("콜론(:)이 없는 줄이 있어요 → " + trimmed);
+          return;
+        }
+        rows.push({ title: m[1].trim(), value: m[2].trim() });
+      });
+      return rows;
+    }
 
-    // 연락처가 전화번호처럼 보이면 '전화 걸기' 버튼 표시
-    const digits = val("contact").replace(/[^\d+]/g, "");
-    if (/^\+?\d{8,}$/.test(digits) && !/[a-z@]/i.test(val("contact"))) $("call").href = "tel:" + digits;
-    else $("call").hidden = true;
+    // https:// 를 빠뜨린 주소는 붙여 주고, 주소가 아니면 "" 를 돌려준다
+    function normalizeUrl(raw) {
+      if (/^https?:\/\/\S+$/i.test(raw)) return raw;
+      if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(raw)) return "https://" + raw;
+      return "";
+    }
+
+    // 글 속 첫 번째 전화번호를 숫자만 남겨 돌려준다 (없으면 "")
+    function firstPhone(text) {
+      var m = text.match(/(^|[^\d])(\+?\d{2,4}[-.\s]?\d{3,4}[-.\s]?\d{4}|1[5-9]\d{2}-\d{4})(?!\d)/);
+      return m ? m[2].replace(/[^\d+]/g, "") : "";
+    }
+
+    // "2026년 11월 14일", "2026-11-14", "2026.11.14" 를 읽는다 (연도가 없으면 null)
+    function parseDate(text) {
+      var m = text.match(/(\d{4})\s*[년.\-\/]\s*(\d{1,2})\s*[월.\-\/]\s*(\d{1,2})/);
+      if (!m) return null;
+      var y = +m[1], mo = +m[2] - 1, d = +m[3];
+      var date = new Date(y, mo, d);
+      if (date.getFullYear() !== y || date.getMonth() !== mo || date.getDate() !== d) return null;
+      return date;
+    }
+
+    function dateBadge(date) {
+      var now = new Date();
+      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var days = Math.round((date - today) / 86400000);
+      if (days < 0)   return el("span", "badge past", "지난 모임이에요 · 다음 일정은 연락처로 문의해 주세요");
+      if (days === 0) return el("span", "badge", "오늘이에요!");
+      return el("span", "badge", "D-" + days);
+    }
+
+    // "오후 2시"가 "오후 / 2시"로 갈라지지 않게 붙인다
+    function keepTimeTogether(text) {
+      return text.replace(/(오전|오후|낮|저녁|밤|아침)\s+(\d)/g, "$1 $2");
+    }
+
+    function render() {
+      var rows = parseLines(document.getElementById("meeting").textContent);
+      var name = "", intro = "", mapRaw = "";
+      var cards = [];
+
+      rows.forEach(function (row) {
+        var key = keyOf(row.title);
+        if (key === "모임이름")                      name = row.value;
+        else if (key === "한줄소개")                 intro = row.value;
+        else if (key === "지도링크" || key === "지도") mapRaw = row.value;
+        else cards.push(row);
+      });
+
+      if (name) {
+        document.getElementById("name").textContent = name;
+        document.title = name;
+      } else {
+        problems.push("'모임 이름:' 줄에 모임 이름을 적어 주세요.");
+      }
+      if (intro) {
+        var introEl = document.getElementById("intro");
+        introEl.textContent = intro;
+        introEl.hidden = false;
+      }
+
+      var mapUrl = "";
+      if (mapRaw) {
+        mapUrl = normalizeUrl(mapRaw);
+        if (!mapUrl) problems.push("'지도 링크'가 인터넷 주소가 아니에요 → " + mapRaw);
+      }
+
+      var main = document.getElementById("cards");
+      var mapPlaced = false, datePlaced = false;
+
+      cards.forEach(function (row) {
+        var key = keyOf(row.title);
+        var section = el("section", "item");
+        section.appendChild(el("div", "label", row.title));
+        if (row.value) section.appendChild(el("div", "value", keepTimeTogether(row.value)));
+
+        var date = !datePlaced && row.value ? parseDate(row.value) : null;
+        if (date) {
+          section.appendChild(dateBadge(date));
+          datePlaced = true;
+        }
+
+        if (mapUrl && !mapPlaced && key.indexOf("장소") !== -1) {
+          section.appendChild(link("지도 보기", mapUrl, true));
+          mapPlaced = true;
+        }
+
+        if (/연락처|전화/.test(key)) {
+          var phone = firstPhone(row.value);
+          if (phone) section.appendChild(link("전화 걸기", "tel:" + phone, false));
+        }
+
+        // 내용도 버튼도 없는 칸은 보여 주지 않는다
+        if (section.childNodes.length > 1) main.appendChild(section);
+      });
+
+      // '장소' 칸이 없으면 지도 버튼만 따로 보여 준다
+      if (mapUrl && !mapPlaced) {
+        var mapSection = el("section", "item");
+        mapSection.appendChild(el("div", "label", "📍 지도"));
+        mapSection.appendChild(link("지도 보기", mapUrl, true));
+        main.appendChild(mapSection);
+      }
+    }
+
+    function link(text, href, newTab) {
+      var a = el("a", "btn", text);
+      a.href = href;
+      if (newTab) {
+        a.target = "_blank";
+        a.rel = "noopener";
+      }
+      return a;
+    }
+
+    function showProblems() {
+      if (!problems.length) return;
+      var box = document.getElementById("notice");
+      box.appendChild(el("strong", "", "⚠️ 관리자 확인 필요: 모임 정보 칸에 고칠 부분이 있어요."));
+      var list = el("ul");
+      problems.forEach(function (p) { list.appendChild(el("li", "", p)); });
+      box.appendChild(list);
+      box.hidden = false;
+    }
+
+    try {
+      render();
+    } catch (e) {
+      problems.push("페이지를 그리는 중 문제가 생겼어요 (" + e.message + ")");
+    }
+    showProblems();
   </script>
 </body>
 </html>

@@ -9,7 +9,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Entry point:** `booklog/index.html` (브라우저에서 직접 열기, 서버 불필요)
 루트의 `index.html`은 GitHub Pages용 리다이렉트(`→ booklog/`)일 뿐이다.
 
-**별도 페이지:** `meetup/index.html` — BookLog와 무관한 모임 안내 단일 페이지. 내용은 파일 맨 위 `MEETING` 객체에서만 수정하고, 빈 값("")인 항목은 화면에서 숨겨진다.
+**별도 페이지:** `meetup/index.html` — BookLog와 무관한 모임 안내 단일 페이지.
+- 내용은 파일 맨 위 `<script type="text/plain" id="meeting">` 안에 「제목: 내용」 한 줄씩 적는다 (JS 문법이 아니라 따옴표 실수로 페이지가 깨지지 않음). 각 줄이 카드 하나가 되고, 내용이 빈 줄은 숨긴다.
+- 특별한 제목: `모임 이름`(헤더, 필수) · `한 줄 소개` · `지도 링크`('장소'가 들어간 카드에 버튼). '연락처/전화' 카드는 첫 전화번호로 `tel:` 버튼, 연도가 있는 첫 날짜는 D-day/지난 모임 표시.
+- 잘못된 줄은 `#notice` 노란 안내로 보여 준다. 단톡방 미리보기용 `<title>`/`og:` 태그는 정적이라 따로 적는다.
+- 오래된 모바일 브라우저 호환을 위해 `??`, `?.`, lookbehind 정규식 등은 쓰지 않는다. 점검 보고서는 `meetup/REVIEW.md`.
 
 ## Architecture
 
