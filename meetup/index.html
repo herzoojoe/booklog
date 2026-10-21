@@ -28,6 +28,11 @@
       예) 🗓️ 정기 모임: 매달 둘째 주 토요일
       '첫째/둘째/셋째/넷째/마지막' 과 '월~일요일'을 바꿔 쓸 수 있어요.
       지난 모임은 흐리게 보이고, '다음 모임' 날짜가 규칙과 다르면 그 달만 바꿔 보여 줘요.
+  - 'Q:' 줄과 'A:' 줄을 짝지어 쓰면 페이지 맨 아래 '자주 묻는 질문'에 들어가요.
+      질문을 누르면 답이 펼쳐져요. 짝을 더 쓰면 질문이 늘고, 지우면 줄어요.
+      답이 길면 'A:' 줄을 여러 번 써서 문단을 나눌 수 있어요.
+      코너 제목은 '❓ 자주 묻는 질문:' 줄에서 이모지나 앞뒤 말을 바꿀 수 있어요.
+      (단, '자주 묻는 질문' 글자는 남겨 두세요. 예: 💬 자주 묻는 질문 모음:)
   - 잘못 쓴 줄이 있으면 페이지 맨 위에 노란 안내가 떠요.
 
   저장한 뒤에는
@@ -44,6 +49,16 @@
 💰 회비: 1인 5,000원 (다과비)
 📞 연락처: 010-1234-5678
 🗓️ 정기 모임: 매달 둘째 주 토요일
+
+❓ 자주 묻는 질문:
+Q: 처음 와도 되나요?
+A: 네, 언제든 환영해요. 연락처로 미리 알려 주시면 자리를 준비해 둘게요.
+Q: 회비는 어떻게 내나요?
+A: 모임 당일 현장에서 현금이나 계좌이체로 내시면 돼요. 회비는 다과와 장소 비용에 써요.
+Q: 책을 다 못 읽었는데 가도 되나요?
+A: 그럼요. 읽은 만큼만 이야기해도 괜찮고, 다른 분들 이야기를 듣기만 해도 좋아요.
+Q: 다음 달 책은 어떻게 정하나요?
+A: 모임이 끝날 때 다 같이 후보를 내고 골라요. 정해진 책은 단톡방에 공지해요.
 </script>
 <!--
   📣 단톡방 미리보기: 카카오톡 등에 링크를 올렸을 때 보이는 제목과 설명이에요.
@@ -228,6 +243,33 @@
     .btn:active { opacity: 0.85; }
     .btn:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 
+    .faq .label + details { margin-top: 10px; }
+    .faq details { border-top: 1px solid var(--border); }
+    .faq summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 0;
+      font-size: 20px;
+      font-weight: 700;
+      cursor: pointer;
+      list-style: none;
+    }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq summary::after {
+      content: "+";
+      flex-shrink: 0;
+      font-size: 26px;
+      font-weight: 400;
+      line-height: 1;
+      color: var(--accent-text);
+    }
+    .faq details[open] summary::after { content: "−"; }
+    .faq summary:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+    .faq details p { padding-bottom: 14px; font-size: 19px; }
+    .faq details p + p { margin-top: -6px; }
+
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -409,12 +451,24 @@
       var rows = parseLines(document.getElementById("meeting").textContent);
       var name = "", intro = "", mapRaw = "";
       var cards = [];
+      var faqTitle = "❓ 자주 묻는 질문", faqs = [];
 
       rows.forEach(function (row) {
         var key = keyOf(row.title);
+        var upper = key.toUpperCase();
+        var lastFaq = faqs[faqs.length - 1];
         if (key === "모임이름")                      name = row.value;
         else if (key === "한줄소개")                 intro = row.value;
         else if (key === "지도링크" || key === "지도") mapRaw = row.value;
+        else if (key.indexOf("자주묻는질문") !== -1)  faqTitle = row.title;
+        else if (upper === "Q" || key === "질문") {
+          if (row.value) faqs.push({ q: row.value, a: [] });
+        }
+        else if (upper === "A" || key === "답" || key === "답변") {
+          if (!row.value) return;
+          if (lastFaq) lastFaq.a.push(row.value);
+          else problems.push("'Q:' 줄 없이 'A:' 줄이 먼저 나왔어요 → " + row.value);
+        }
         else cards.push(row);
       });
 
@@ -488,6 +542,26 @@
         mapSection.appendChild(link("지도 보기", mapUrl, true));
         main.appendChild(mapSection);
       }
+
+      // 자주 묻는 질문은 항상 맨 아래. 답이 없는 질문은 빼고 안내한다
+      var answered = faqs.filter(function (faq) {
+        if (!faq.a.length) problems.push("'A:' 답이 없는 질문이 있어요 → " + faq.q);
+        return faq.a.length > 0;
+      });
+      if (answered.length) main.appendChild(faqSection(faqTitle, answered));
+    }
+
+    // 질문을 누르면 답이 펼쳐진다 (<details>라 스크립트 없이 열고 닫힘)
+    function faqSection(title, faqs) {
+      var section = el("section", "item faq");
+      section.appendChild(el("div", "label", title));
+      faqs.forEach(function (faq) {
+        var details = el("details");
+        details.appendChild(el("summary", "", faq.q));
+        faq.a.forEach(function (line) { details.appendChild(el("p", "", line)); });
+        section.appendChild(details);
+      });
+      return section;
     }
 
     function link(text, href, newTab) {
