@@ -408,7 +408,30 @@
     .container.stats-mode #list-section,
     .container.stats-mode #empty-state { display: none; }
 
-    .stats-header { margin-bottom: 18px; }
+    .stats-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .year-picker { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-sub); }
+    .year-picker select {
+      padding: 6px 12px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 20px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+    .year-picker select:hover,
+    .year-picker select:focus { border-color: var(--accent); }
     .stats-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
     @media (min-width: 768px) {
       .stats-grid { grid-template-columns: 1fr 1fr; }
@@ -607,10 +630,14 @@
     <section id="stats-section">
       <div class="stats-header">
         <h2 class="list-title">📊 <span><span id="stats-year"></span>년 독서 통계</span></h2>
+        <label class="year-picker">
+          연도 선택
+          <select id="stats-year-select"></select>
+        </label>
       </div>
       <div class="stats-grid">
         <div class="stat-card">
-          <h3>올해 읽은 책</h3>
+          <h3 id="stat-year-title">올해 읽은 책</h3>
           <div class="stat-hero"><span class="num" id="stat-year-count">0</span><span class="unit">권</span></div>
           <p class="stat-note" id="stat-year-note"></p>
         </div>
@@ -620,7 +647,7 @@
           <p class="stat-note" id="stat-genre-note"></p>
         </div>
         <div class="stat-card full">
-          <h3>월별 읽은 권수</h3>
+          <h3 id="stat-month-title">월별 읽은 권수</h3>
           <div class="month-chart" id="month-chart" role="img"></div>
           <div class="month-labels" id="month-labels"></div>
         </div>
@@ -885,10 +912,11 @@
         if (y === year) monthly[m - 1]++;
       });
 
-      /* 장르 Top 3는 전체 기록 기준. 동점이면 장르 목록 순서 */
+      /* 장르 Top 3도 고른 연도에 읽은 책 기준 (날짜 없는 책 제외). 동점이면 장르 목록 순서 */
       const genreCount = new Map();
       let noGenre = 0;
       books.forEach(b => {
+        if (!b.date || Number(b.date.split('-')[0]) !== year) return;
         if (b.genre) genreCount.set(b.genre, (genreCount.get(b.genre) || 0) + 1);
         else noGenre++;
       });
@@ -900,13 +928,36 @@
       return { monthly, yearCount: monthly.reduce((s, n) => s + n, 0), undated, topGenres, noGenre };
     }
 
+    /* 연도 선택 — null이면 올해. 통계 화면을 닫았다 열어도 고른 연도를 유지 */
+    let statsYear = null;
+    const yearSelect = document.getElementById('stats-year-select');
+
+    /* 고를 수 있는 연도: 올해 + 읽은 날짜가 있는 모든 해 (최근 해부터) */
+    function availableYears(books, thisYear) {
+      const years = new Set([thisYear]);
+      books.forEach(b => {
+        const y = b.date ? Number(String(b.date).slice(0, 4)) : NaN;
+        if (y > 0) years.add(y);
+      });
+      return [...years].sort((a, b) => b - a);
+    }
+
     function renderStats() {
-      const books = loadBooks();
-      const now   = new Date();
-      const year  = now.getFullYear();
-      const st    = computeStats(books, year);
+      const books    = loadBooks();
+      const now      = new Date();
+      const thisYear = now.getFullYear();
+      const years    = availableYears(books, thisYear);
+      if (!years.includes(statsYear)) statsYear = thisYear;   // 기록이 지워져 없는 해면 올해로
+      const year     = statsYear;
+      const isThis   = year === thisYear;
+      const st       = computeStats(books, year);
+
+      yearSelect.innerHTML = years.map(y =>
+        `<option value="${y}"${y === year ? ' selected' : ''}>${y}년${y === thisYear ? ' (올해)' : ''}</option>`).join('');
 
       document.getElementById('stats-year').textContent = year;
+      document.getElementById('stat-year-title').textContent = isThis ? '올해 읽은 책' : `${year}년에 읽은 책`;
+      document.getElementById('stat-month-title').textContent = `${year}년 월별 읽은 권수`;
       document.getElementById('stat-year-count').textContent = st.yearCount;
       document.getElementById('stat-year-note').textContent =
         `전체 기록 ${books.length}권 중 읽은 날짜가 ${year}년인 책` +
@@ -915,7 +966,7 @@
       /* 장르 Top 3 */
       const genresEl = document.getElementById('stat-genres');
       if (st.topGenres.length === 0) {
-        genresEl.innerHTML = '<p class="stat-empty">아직 장르가 입력된 책이 없어요.<br>책을 추가할 때 장르를 선택해 보세요.</p>';
+        genresEl.innerHTML = `<p class="stat-empty">${year}년에 읽은 책 중 장르가 입력된 책이 없어요.<br>책 카드의 장르 태그를 눌러 장르를 정해 보세요.</p>`;
       } else {
         const max = st.topGenres[0][1];
         genresEl.innerHTML = `<ol class="genre-list">${st.topGenres.map(([g, n], i) => `
@@ -927,7 +978,7 @@
           </li>`).join('')}</ol>`;
       }
       document.getElementById('stat-genre-note').textContent =
-        '전체 기록 기준' + (st.noGenre ? ` · 장르 미입력 ${st.noGenre}권 제외` : '');
+        `${year}년에 읽은 책 기준` + (st.noGenre ? ` · 장르 미입력 ${st.noGenre}권 제외` : '');
 
       /* 월별 막대그래프 — 막대 높이는 가장 많이 읽은 달을 100%로 */
       const maxMonth = Math.max(...st.monthly, 1);
@@ -941,8 +992,13 @@
       chart.setAttribute('aria-label',
         `${year}년 월별 읽은 권수: ` + st.monthly.map((n, i) => `${i + 1}월 ${n}권`).join(', '));
       document.getElementById('month-labels').innerHTML = st.monthly.map((_, i) =>
-        `<span class="${i === now.getMonth() ? 'current' : ''}">${i + 1}월</span>`).join('');
+        `<span class="${isThis && i === now.getMonth() ? 'current' : ''}">${i + 1}월</span>`).join('');
     }
+
+    yearSelect.addEventListener('change', () => {
+      statsYear = Number(yearSelect.value);
+      renderStats();
+    });
 
     function showStats(on) {
       container.classList.toggle('stats-mode', on);
