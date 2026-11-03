@@ -57,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **통계 규칙:**
   - 헤더의 `#stats-year-select`로 연도 선택 (`statsYear`, null이면 올해). 목록은 올해 + 기록이 있는 해, 최근 해부터. 통계를 닫았다 열어도 고른 연도 유지, 그 해 기록이 모두 지워지면 올해로
   - 선택 연도의 권수·월별 막대그래프는 `date` 기준 (날짜 없는 책은 제외하고 제외 권수를 표시). 이번 달 강조는 올해를 볼 때만
-  - 장르 Top 3는 연도 선택과 무관하게 **전체 기록** 기준, 동점이면 `GENRES` 배열 순서
+  - 장르 Top 3도 **선택 연도에 읽은 책** 기준 (날짜 없는 책 제외, 장르 미입력 권수 표시), 동점이면 `GENRES` 배열 순서
   - 월별 막대는 가장 많은 달을 100% 높이로, 막대 위 권수 + hover/focus 말풍선(`data-tip`)
 
 ## Key Constraints

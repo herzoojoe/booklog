@@ -912,10 +912,11 @@
         if (y === year) monthly[m - 1]++;
       });
 
-      /* 장르 Top 3는 전체 기록 기준. 동점이면 장르 목록 순서 */
+      /* 장르 Top 3도 고른 연도에 읽은 책 기준 (날짜 없는 책 제외). 동점이면 장르 목록 순서 */
       const genreCount = new Map();
       let noGenre = 0;
       books.forEach(b => {
+        if (!b.date || Number(b.date.split('-')[0]) !== year) return;
         if (b.genre) genreCount.set(b.genre, (genreCount.get(b.genre) || 0) + 1);
         else noGenre++;
       });
@@ -965,7 +966,7 @@
       /* 장르 Top 3 */
       const genresEl = document.getElementById('stat-genres');
       if (st.topGenres.length === 0) {
-        genresEl.innerHTML = '<p class="stat-empty">아직 장르가 입력된 책이 없어요.<br>책을 추가할 때 장르를 선택해 보세요.</p>';
+        genresEl.innerHTML = `<p class="stat-empty">${year}년에 읽은 책 중 장르가 입력된 책이 없어요.<br>책 카드의 장르 태그를 눌러 장르를 정해 보세요.</p>`;
       } else {
         const max = st.topGenres[0][1];
         genresEl.innerHTML = `<ol class="genre-list">${st.topGenres.map(([g, n], i) => `
@@ -977,7 +978,7 @@
           </li>`).join('')}</ol>`;
       }
       document.getElementById('stat-genre-note').textContent =
-        '모든 연도의 전체 기록 기준' + (st.noGenre ? ` · 장르 미입력 ${st.noGenre}권 제외` : '');
+        `${year}년에 읽은 책 기준` + (st.noGenre ? ` · 장르 미입력 ${st.noGenre}권 제외` : '');
 
       /* 월별 막대그래프 — 막대 높이는 가장 많이 읽은 달을 100%로 */
       const maxMonth = Math.max(...st.monthly, 1);
